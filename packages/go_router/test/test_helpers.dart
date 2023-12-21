@@ -12,12 +12,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
-Future<GoRouter> createGoRouter(WidgetTester tester) async {
-  final GoRouter goRouter = GoRouter(
+Future<GoRouter<F>> createGoRouter<F>(WidgetTester tester) async {
+  final GoRouter<F> goRouter = GoRouter<F>(
     initialLocation: '/',
-    routes: <GoRoute>[
-      GoRoute(path: '/', builder: (_, __) => const DummyStatefulWidget()),
-      GoRoute(
+    routes: <GoRoute<F>>[
+      GoRoute<F>(path: '/', builder: (_, __) => const DummyStatefulWidget()),
+      GoRoute<F>(
         path: '/error',
         builder: (_, __) => TestErrorScreen(TestFailure('Exception')),
       ),
@@ -29,9 +29,9 @@ Future<GoRouter> createGoRouter(WidgetTester tester) async {
   return goRouter;
 }
 
-Widget fakeNavigationBuilder(
+Widget fakeNavigationBuilder<F>(
   BuildContext context,
-  GoRouterState state,
+  GoRouterState<F> state,
   Widget child,
 ) =>
     child;
@@ -159,22 +159,22 @@ class GoRouterPopSpy extends GoRouter {
   }
 }
 
-Future<GoRouter> createRouter(
-  List<RouteBase> routes,
+Future<GoRouter<F>> createRouter<F>(
+  List<RouteBase<F>> routes,
   WidgetTester tester, {
-  GoRouterRedirect? redirect,
+  GoRouterRedirect<F>? redirect,
   String initialLocation = '/',
   Object? initialExtra,
   int redirectLimit = 5,
   GlobalKey<NavigatorState>? navigatorKey,
-  GoRouterWidgetBuilder? errorBuilder,
+  GoRouterWidgetBuilder<F>? errorBuilder,
   String? restorationScopeId,
   Codec<Object?, Object?>? extraCodec,
-  GoExceptionHandler? onException,
+  GoExceptionHandler<F>? onException,
   bool requestFocus = true,
   bool overridePlatformDefaultLocation = false,
 }) async {
-  final GoRouter goRouter = GoRouter(
+  final GoRouter<F> goRouter = GoRouter<F>(
     routes: routes,
     redirect: redirect,
     extraCodec: extraCodec,
@@ -198,19 +198,19 @@ Future<GoRouter> createRouter(
   return goRouter;
 }
 
-Future<GoRouter> createRouterWithRoutingConfig(
-  ValueListenable<RoutingConfig> config,
+Future<GoRouter<F>> createRouterWithRoutingConfig<F>(
+  ValueListenable<RoutingConfig<F>> config,
   WidgetTester tester, {
   String initialLocation = '/',
   Object? initialExtra,
   GlobalKey<NavigatorState>? navigatorKey,
-  GoRouterWidgetBuilder? errorBuilder,
+  GoRouterWidgetBuilder<F>? errorBuilder,
   String? restorationScopeId,
-  GoExceptionHandler? onException,
+  GoExceptionHandler<F>? onException,
   bool requestFocus = true,
   bool overridePlatformDefaultLocation = false,
 }) async {
-  final GoRouter goRouter = GoRouter.routingConfig(
+  final GoRouter<F> goRouter = GoRouter<F>.routingConfig(
     routingConfig: config,
     initialLocation: initialLocation,
     onException: onException,
@@ -284,7 +284,8 @@ class DummyScreen extends StatelessWidget {
   Widget build(BuildContext context) => const Placeholder();
 }
 
-Widget dummy(BuildContext context, GoRouterState state) => const DummyScreen();
+Widget dummy<F>(BuildContext context, GoRouterState<F> state) =>
+    const DummyScreen();
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -346,18 +347,19 @@ Future<void> simulateAndroidBackButton(WidgetTester tester) async {
       .handlePlatformMessage('flutter/navigation', message, (_) {});
 }
 
-GoRouterPageBuilder createPageBuilder(
+GoRouterPageBuilder<F> createPageBuilder<F>(
         {String? restorationId, required Widget child}) =>
-    (BuildContext context, GoRouterState state) =>
+    (BuildContext context, GoRouterState<F> state) =>
         MaterialPage<dynamic>(restorationId: restorationId, child: child);
 
-StatefulShellRouteBuilder mockStackedShellBuilder = (BuildContext context,
-    GoRouterState state, StatefulNavigationShell navigationShell) {
-  return navigationShell;
-};
+StatefulShellRouteBuilder<F> mockStackedShellBuilder<F>() =>
+    (BuildContext context, GoRouterState<F> state,
+        StatefulNavigationShell<F> navigationShell) {
+      return navigationShell;
+    };
 
-RouteMatch createRouteMatch(RouteBase route, String location) {
-  return RouteMatch(
+RouteMatch<F> createRouteMatch<F>(RouteBase<F> route, String location) {
+  return RouteMatch<F>(
     route: route,
     matchedLocation: location,
     pageKey: ValueKey<String>(location),
@@ -365,7 +367,8 @@ RouteMatch createRouteMatch(RouteBase route, String location) {
 }
 
 /// A routing config that is never going to change.
-class ConstantRoutingConfig extends ValueListenable<RoutingConfig> {
+@optionalTypeArgs
+class ConstantRoutingConfig<F> extends ValueListenable<RoutingConfig<F>> {
   const ConstantRoutingConfig(this.value);
   @override
   void addListener(VoidCallback listener) {
@@ -378,17 +381,17 @@ class ConstantRoutingConfig extends ValueListenable<RoutingConfig> {
   }
 
   @override
-  final RoutingConfig value;
+  final RoutingConfig<F> value;
 }
 
-RouteConfiguration createRouteConfiguration({
-  required List<RouteBase> routes,
+RouteConfiguration<F> createRouteConfiguration<F>({
+  required List<RouteBase<F>> routes,
   required GlobalKey<NavigatorState> navigatorKey,
-  required GoRouterRedirect topRedirect,
+  required GoRouterRedirect<F> topRedirect,
   required int redirectLimit,
 }) {
-  return RouteConfiguration(
-      ConstantRoutingConfig(RoutingConfig(
+  return RouteConfiguration<F>(
+      ConstantRoutingConfig<F>(RoutingConfig<F>(
         routes: routes,
         redirect: topRedirect,
         redirectLimit: redirectLimit,

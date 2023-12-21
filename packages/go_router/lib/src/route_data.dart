@@ -24,7 +24,8 @@ abstract class RouteData {
 /// Subclasses must override one of [build], [buildPage], or
 /// [redirect].
 /// {@category Type-safe routes}
-abstract class GoRouteData extends RouteData {
+@optionalTypeArgs
+abstract class GoRouteData<F> extends RouteData {
   /// Allows subclasses to have `const` constructors.
   ///
   /// [GoRouteData] is abstract and cannot be instantiated directly.
@@ -36,7 +37,7 @@ abstract class GoRouteData extends RouteData {
   /// [redirect].
   ///
   /// Corresponds to [GoRoute.builder].
-  Widget build(BuildContext context, GoRouterState state) =>
+  Widget build(BuildContext context, GoRouterState<F> state) =>
       throw UnimplementedError(
         'One of `build` or `buildPage` must be implemented.',
       );
@@ -52,7 +53,7 @@ abstract class GoRouteData extends RouteData {
   ///
   /// By default, returns a [Page] instance that is ignored, causing a default
   /// [Page] implementation to be used with the results of [build].
-  Page<void> buildPage(BuildContext context, GoRouterState state) =>
+  Page<void> buildPage(BuildContext context, GoRouterState<F> state) =>
       const NoOpPage();
 
   /// An optional redirect function for this route.
@@ -61,7 +62,8 @@ abstract class GoRouteData extends RouteData {
   /// [redirect].
   ///
   /// Corresponds to [GoRoute.redirect].
-  FutureOr<String?> redirect(BuildContext context, GoRouterState state) => null;
+  FutureOr<String?> redirect(BuildContext context, GoRouterState<F> state) =>
+      null;
 
   /// A helper function used by generated code.
   ///
@@ -78,14 +80,14 @@ abstract class GoRouteData extends RouteData {
   /// A helper function used by generated code.
   ///
   /// Should not be used directly.
-  static GoRoute $route<T extends GoRouteData>({
+  static GoRoute<F> $route<T extends GoRouteData<F>, F>({
     required String path,
     String? name,
-    required T Function(GoRouterState) factory,
+    required T Function(GoRouterState<F>) factory,
     GlobalKey<NavigatorState>? parentNavigatorKey,
-    List<RouteBase> routes = const <RouteBase>[],
+    List<RouteBase<F>>? routes,
   }) {
-    T factoryImpl(GoRouterState state) {
+    T factoryImpl(GoRouterState<F> state) {
       final Object? extra = state.extra;
 
       // If the "extra" value is of type `T` then we know it's the source
@@ -97,36 +99,38 @@ abstract class GoRouteData extends RouteData {
       return (_stateObjectExpando[state] ??= factory(state)) as T;
     }
 
-    Widget builder(BuildContext context, GoRouterState state) =>
+    Widget builder(BuildContext context, GoRouterState<F> state) =>
         factoryImpl(state).build(context, state);
 
-    Page<void> pageBuilder(BuildContext context, GoRouterState state) =>
+    Page<void> pageBuilder(BuildContext context, GoRouterState<F> state) =>
         factoryImpl(state).buildPage(context, state);
 
-    FutureOr<String?> redirect(BuildContext context, GoRouterState state) =>
+    FutureOr<String?> redirect(BuildContext context, GoRouterState<F> state) =>
         factoryImpl(state).redirect(context, state);
 
-    return GoRoute(
+    return GoRoute<F>(
       path: path,
       name: name,
       builder: builder,
       pageBuilder: pageBuilder,
       redirect: redirect,
-      routes: routes,
+      routes: routes ?? <RouteBase<F>>[],
       parentNavigatorKey: parentNavigatorKey,
     );
   }
 
   /// Used to cache [GoRouteData] that corresponds to a given [GoRouterState]
   /// to minimize the number of times it has to be deserialized.
-  static final Expando<GoRouteData> _stateObjectExpando = Expando<GoRouteData>(
+  static final Expando<GoRouteData<dynamic>> _stateObjectExpando =
+      Expando<GoRouteData<dynamic>>(
     'GoRouteState to GoRouteData expando',
   );
 }
 
 /// A class to represent a [ShellRoute] in
 /// [Type-safe routing](https://pub.dev/documentation/go_router/latest/topics/Type-safe%20routes-topic.html).
-abstract class ShellRouteData extends RouteData {
+@optionalTypeArgs
+abstract class ShellRouteData<F> extends RouteData {
   /// Allows subclasses to have `const` constructors.
   ///
   /// [ShellRouteData] is abstract and cannot be instantiated directly.
@@ -135,7 +139,7 @@ abstract class ShellRouteData extends RouteData {
   /// [pageBuilder] is used to build the page
   Page<void> pageBuilder(
     BuildContext context,
-    GoRouterState state,
+    GoRouterState<F> state,
     Widget navigator,
   ) =>
       const NoOpPage();
@@ -143,7 +147,7 @@ abstract class ShellRouteData extends RouteData {
   /// [builder] is used to build the widget
   Widget builder(
     BuildContext context,
-    GoRouterState state,
+    GoRouterState<F> state,
     Widget navigator,
   ) =>
       throw UnimplementedError(
@@ -153,21 +157,21 @@ abstract class ShellRouteData extends RouteData {
   /// A helper function used by generated code.
   ///
   /// Should not be used directly.
-  static ShellRoute $route<T extends ShellRouteData>({
-    required T Function(GoRouterState) factory,
+  static ShellRoute<F> $route<T extends ShellRouteData<F>, F>({
+    required T Function(GoRouterState<F>) factory,
     GlobalKey<NavigatorState>? navigatorKey,
     GlobalKey<NavigatorState>? parentNavigatorKey,
-    List<RouteBase> routes = const <RouteBase>[],
+    List<RouteBase<F>>? routes,
     List<NavigatorObserver>? observers,
     String? restorationScopeId,
   }) {
-    T factoryImpl(GoRouterState state) {
+    T factoryImpl(GoRouterState<F> state) {
       return (_stateObjectExpando[state] ??= factory(state)) as T;
     }
 
     Widget builder(
       BuildContext context,
-      GoRouterState state,
+      GoRouterState<F> state,
       Widget navigator,
     ) =>
         factoryImpl(state).builder(
@@ -178,7 +182,7 @@ abstract class ShellRouteData extends RouteData {
 
     Page<void> pageBuilder(
       BuildContext context,
-      GoRouterState state,
+      GoRouterState<F> state,
       Widget navigator,
     ) =>
         factoryImpl(state).pageBuilder(
@@ -187,11 +191,11 @@ abstract class ShellRouteData extends RouteData {
           navigator,
         );
 
-    return ShellRoute(
+    return ShellRoute<F>(
       builder: builder,
       pageBuilder: pageBuilder,
       parentNavigatorKey: parentNavigatorKey,
-      routes: routes,
+      routes: routes ?? <RouteBase<F>>[],
       navigatorKey: navigatorKey,
       observers: observers,
       restorationScopeId: restorationScopeId,
@@ -200,31 +204,32 @@ abstract class ShellRouteData extends RouteData {
 
   /// Used to cache [ShellRouteData] that corresponds to a given [GoRouterState]
   /// to minimize the number of times it has to be deserialized.
-  static final Expando<ShellRouteData> _stateObjectExpando =
-      Expando<ShellRouteData>(
+  static final Expando<ShellRouteData<dynamic>> _stateObjectExpando =
+      Expando<ShellRouteData<dynamic>>(
     'GoRouteState to ShellRouteData expando',
   );
 }
 
 /// Base class for supporting
 /// [StatefulShellRoute](https://pub.dev/documentation/go_router/latest/go_router/StatefulShellRoute-class.html)
-abstract class StatefulShellRouteData extends RouteData {
+@optionalTypeArgs
+abstract class StatefulShellRouteData<F> extends RouteData {
   /// Default const constructor
   const StatefulShellRouteData();
 
   /// [pageBuilder] is used to build the page
   Page<void> pageBuilder(
     BuildContext context,
-    GoRouterState state,
-    StatefulNavigationShell navigationShell,
+    GoRouterState<F> state,
+    StatefulNavigationShell<F> navigationShell,
   ) =>
       const NoOpPage();
 
   /// [builder] is used to build the widget
   Widget builder(
     BuildContext context,
-    GoRouterState state,
-    StatefulNavigationShell navigationShell,
+    GoRouterState<F> state,
+    StatefulNavigationShell<F> navigationShell,
   ) =>
       throw UnimplementedError(
         'One of `builder` or `pageBuilder` must be implemented.',
@@ -233,21 +238,21 @@ abstract class StatefulShellRouteData extends RouteData {
   /// A helper function used by generated code.
   ///
   /// Should not be used directly.
-  static StatefulShellRoute $route<T extends StatefulShellRouteData>({
-    required T Function(GoRouterState) factory,
-    required List<StatefulShellBranch> branches,
+  static StatefulShellRoute<F> $route<T extends StatefulShellRouteData<F>, F>({
+    required T Function(GoRouterState<F>) factory,
+    required List<StatefulShellBranch<F>> branches,
     GlobalKey<NavigatorState>? parentNavigatorKey,
-    ShellNavigationContainerBuilder? navigatorContainerBuilder,
+    ShellNavigationContainerBuilder<F>? navigatorContainerBuilder,
     String? restorationScopeId,
   }) {
-    T factoryImpl(GoRouterState state) {
+    T factoryImpl(GoRouterState<F> state) {
       return (_stateObjectExpando[state] ??= factory(state)) as T;
     }
 
     Widget builder(
       BuildContext context,
-      GoRouterState state,
-      StatefulNavigationShell navigationShell,
+      GoRouterState<F> state,
+      StatefulNavigationShell<F> navigationShell,
     ) =>
         factoryImpl(state).builder(
           context,
@@ -257,8 +262,8 @@ abstract class StatefulShellRouteData extends RouteData {
 
     Page<void> pageBuilder(
       BuildContext context,
-      GoRouterState state,
-      StatefulNavigationShell navigationShell,
+      GoRouterState<F> state,
+      StatefulNavigationShell<F> navigationShell,
     ) =>
         factoryImpl(state).pageBuilder(
           context,
@@ -267,7 +272,7 @@ abstract class StatefulShellRouteData extends RouteData {
         );
 
     if (navigatorContainerBuilder != null) {
-      return StatefulShellRoute(
+      return StatefulShellRoute<F>(
         branches: branches,
         builder: builder,
         pageBuilder: pageBuilder,
@@ -276,7 +281,7 @@ abstract class StatefulShellRouteData extends RouteData {
         restorationScopeId: restorationScopeId,
       );
     }
-    return StatefulShellRoute.indexedStack(
+    return StatefulShellRoute<F>.indexedStack(
       branches: branches,
       builder: builder,
       pageBuilder: pageBuilder,
@@ -287,8 +292,8 @@ abstract class StatefulShellRouteData extends RouteData {
 
   /// Used to cache [StatefulShellRouteData] that corresponds to a given [GoRouterState]
   /// to minimize the number of times it has to be deserialized.
-  static final Expando<StatefulShellRouteData> _stateObjectExpando =
-      Expando<StatefulShellRouteData>(
+  static final Expando<StatefulShellRouteData<dynamic>> _stateObjectExpando =
+      Expando<StatefulShellRouteData<dynamic>>(
     'GoRouteState to StatefulShellRouteData expando',
   );
 }
@@ -302,15 +307,15 @@ abstract class StatefulShellBranchData {
   /// A helper function used by generated code.
   ///
   /// Should not be used directly.
-  static StatefulShellBranch $branch<T extends StatefulShellBranchData>({
+  static StatefulShellBranch<F> $branch<T extends StatefulShellBranchData, F>({
     GlobalKey<NavigatorState>? navigatorKey,
-    List<RouteBase> routes = const <RouteBase>[],
+    List<RouteBase<F>>? routes,
     List<NavigatorObserver>? observers,
     String? initialLocation,
     String? restorationScopeId,
   }) {
-    return StatefulShellBranch(
-      routes: routes,
+    return StatefulShellBranch<F>(
+      routes: routes ?? <RouteBase<F>>[],
       navigatorKey: navigatorKey,
       observers: observers,
       initialLocation: initialLocation,
@@ -327,7 +332,7 @@ class TypedRoute<T extends RouteData> {
 
 /// A superclass for each typed go route descendant
 @Target(<TargetKind>{TargetKind.library, TargetKind.classType})
-class TypedGoRoute<T extends GoRouteData> extends TypedRoute<T> {
+class TypedGoRoute<T extends GoRouteData<F>, F> extends TypedRoute<T> {
   /// Default const constructor
   const TypedGoRoute({
     required this.path,
@@ -358,7 +363,7 @@ class TypedGoRoute<T extends GoRouteData> extends TypedRoute<T> {
 
 /// A superclass for each typed shell route descendant
 @Target(<TargetKind>{TargetKind.library, TargetKind.classType})
-class TypedShellRoute<T extends ShellRouteData> extends TypedRoute<T> {
+class TypedShellRoute<T extends ShellRouteData<F>, F> extends TypedRoute<T> {
   /// Default const constructor
   const TypedShellRoute({
     this.routes = const <TypedRoute<RouteData>>[],
@@ -372,7 +377,7 @@ class TypedShellRoute<T extends ShellRouteData> extends TypedRoute<T> {
 
 /// A superclass for each typed shell route descendant
 @Target(<TargetKind>{TargetKind.library, TargetKind.classType})
-class TypedStatefulShellRoute<T extends StatefulShellRouteData>
+class TypedStatefulShellRoute<T extends StatefulShellRouteData<F>, F>
     extends TypedRoute<T> {
   /// Default const constructor
   const TypedStatefulShellRoute({

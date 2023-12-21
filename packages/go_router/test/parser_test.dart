@@ -8,24 +8,24 @@ import 'package:go_router/go_router.dart';
 
 import 'test_helpers.dart';
 
-RouteInformation createRouteInformation(String location, [Object? extra]) {
+RouteInformation createRouteInformation<F>(String location, [Object? extra]) {
   return RouteInformation(
       // TODO(chunhtai): remove this ignore and migrate the code
       // https://github.com/flutter/flutter/issues/124045.
       // ignore: deprecated_member_use
       location: location,
-      state:
-          RouteInformationState<void>(type: NavigatingType.go, extra: extra));
+      state: RouteInformationState<void, F>(
+          type: NavigatingType.go, extra: extra));
 }
 
 void main() {
-  Future<GoRouteInformationParser> createParser(
+  Future<GoRouteInformationParser<F>> createParser<F>(
     WidgetTester tester, {
-    required List<RouteBase> routes,
+    required List<RouteBase<F>> routes,
     int redirectLimit = 5,
-    GoRouterRedirect? redirect,
+    GoRouterRedirect<F>? redirect,
   }) async {
-    final GoRouter router = GoRouter(
+    final GoRouter<F> router = GoRouter<F>(
       routes: routes,
       redirectLimit: redirectLimit,
       redirect: redirect,

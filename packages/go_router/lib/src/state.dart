@@ -14,7 +14,7 @@ import 'route.dart';
 ///
 /// The state contains parsed artifacts of the current URI.
 @immutable
-class GoRouterState {
+class GoRouterState<F> {
   /// Default constructor for creating route state during routing.
   const GoRouterState(
     this._configuration, {
@@ -29,10 +29,10 @@ class GoRouterState {
     required this.pageKey,
     required this.matchList,
   });
-  final RouteConfiguration _configuration;
+  final RouteConfiguration<F> _configuration;
 
   /// The matched route associated with this state.
-  final RouteMatchList matchList;
+  final RouteMatchList<F> matchList;
 
   /// The full uri of the route, e.g. /family/f2/person/p1?filter=name#fragment
   final Uri uri;
@@ -83,7 +83,7 @@ class GoRouterState {
   /// Generates a title for the matched route associated with this state.
   ///
   /// This function is obtained from the current route's [GoRoute.titleBuilder].
-  String Function(BuildContext context)? get titleBuilder =>
+  F Function(BuildContext context)? get titleBuilder =>
       matchList.titleBuilder == null
           ? null
           : (BuildContext context) => matchList.titleBuilder!(context, this);
@@ -120,7 +120,7 @@ class GoRouterState {
   ///   }
   /// }
   /// ```
-  static GoRouterState of(BuildContext context) {
+  static GoRouterState<F> of<F>(BuildContext context) {
     final ModalRoute<Object?>? route = ModalRoute.of(context);
     if (route == null) {
       throw GoError('There is no modal route above the current context.');
@@ -130,13 +130,13 @@ class GoRouterState {
       throw GoError(
           'The parent route must be a page route to have a GoRouterState');
     }
-    final GoRouterStateRegistryScope? scope = context
-        .dependOnInheritedWidgetOfExactType<GoRouterStateRegistryScope>();
+    final GoRouterStateRegistryScope<F>? scope = context
+        .dependOnInheritedWidgetOfExactType<GoRouterStateRegistryScope<F>>();
     if (scope == null) {
       throw GoError(
           'There is no GoRouterStateRegistryScope above the current context.');
     }
-    final GoRouterState state =
+    final GoRouterState<F> state =
         scope.notifier!._createPageRouteAssociation(settings, route);
     return state;
   }
@@ -185,12 +185,13 @@ class GoRouterState {
 /// Should not be used directly, consider using [GoRouterState.of] to access
 /// [GoRouterState] from the context.
 @internal
-class GoRouterStateRegistryScope
-    extends InheritedNotifier<GoRouterStateRegistry> {
+@optionalTypeArgs
+class GoRouterStateRegistryScope<F>
+    extends InheritedNotifier<GoRouterStateRegistry<F>> {
   /// Creates a GoRouterStateRegistryScope.
   const GoRouterStateRegistryScope({
     super.key,
-    required GoRouterStateRegistry registry,
+    required GoRouterStateRegistry<F> registry,
     required super.child,
   }) : super(notifier: registry);
 }
@@ -200,19 +201,20 @@ class GoRouterStateRegistryScope
 /// Should not be used directly, consider using [GoRouterState.of] to access
 /// [GoRouterState] from the context.
 @internal
-class GoRouterStateRegistry extends ChangeNotifier {
+@optionalTypeArgs
+class GoRouterStateRegistry<F> extends ChangeNotifier {
   /// creates a [GoRouterStateRegistry].
   GoRouterStateRegistry();
 
   /// A [Map] that maps a [Page] to a [GoRouterState].
   @visibleForTesting
-  final Map<Page<Object?>, GoRouterState> registry =
-      <Page<Object?>, GoRouterState>{};
+  final Map<Page<Object?>, GoRouterState<F>> registry =
+      <Page<Object?>, GoRouterState<F>>{};
 
   final Map<Route<Object?>, Page<Object?>> _routePageAssociation =
       <ModalRoute<Object?>, Page<Object?>>{};
 
-  GoRouterState _createPageRouteAssociation(
+  GoRouterState<F> _createPageRouteAssociation(
       Page<Object?> page, ModalRoute<Object?> route) {
     assert(route.settings == page);
     assert(registry.containsKey(page));
@@ -242,13 +244,13 @@ class GoRouterStateRegistry extends ChangeNotifier {
   }
 
   /// Updates this registry with new records.
-  void updateRegistry(Map<Page<Object?>, GoRouterState> newRegistry) {
+  void updateRegistry(Map<Page<Object?>, GoRouterState<F>> newRegistry) {
     bool shouldNotify = false;
     final Set<Page<Object?>> pagesWithAssociation =
         _routePageAssociation.values.toSet();
-    for (final MapEntry<Page<Object?>, GoRouterState> entry
+    for (final MapEntry<Page<Object?>, GoRouterState<F>> entry
         in newRegistry.entries) {
-      final GoRouterState? existingState = registry[entry.key];
+      final GoRouterState<F>? existingState = registry[entry.key];
       if (existingState != null) {
         if (existingState != entry.value) {
           shouldNotify =
@@ -262,7 +264,7 @@ class GoRouterStateRegistry extends ChangeNotifier {
       // Adding or removing registry does not need to notify the listen since
       // no one should be depending on them.
     }
-    registry.removeWhere((Page<Object?> key, GoRouterState value) {
+    registry.removeWhere((Page<Object?> key, GoRouterState<F> value) {
       if (newRegistry.containsKey(key)) {
         return false;
       }

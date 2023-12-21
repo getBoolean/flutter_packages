@@ -139,10 +139,10 @@ String canonicalUri(String loc) {
 }
 
 /// Builds an absolute path for the provided route.
-String? fullPathForRoute(
-    RouteBase targetRoute, String parentFullpath, List<RouteBase> routes) {
-  for (final RouteBase route in routes) {
-    final String fullPath = (route is GoRoute)
+String? fullPathForRoute<F>(RouteBase<F> targetRoute, String parentFullpath,
+    List<RouteBase<F>> routes) {
+  for (final RouteBase<F> route in routes) {
+    final String fullPath = (route is GoRoute<F>)
         ? concatenatePaths(parentFullpath, route.path)
         : parentFullpath;
 

@@ -31,7 +31,7 @@ void main() {
     final List<RouteBase> routes = <RouteBase>[
       ShellRoute(
         navigatorKey: shellNavigatorKey,
-        builder: (BuildContext context, GoRouterState state, Widget child) {
+        builder: (_, __, Widget child) {
           return Scaffold(
             body: Column(
               children: <Widget>[
@@ -44,7 +44,7 @@ void main() {
         routes: <RouteBase>[
           GoRoute(
             path: '/b',
-            builder: (BuildContext context, GoRouterState state) {
+            builder: (_, __) {
               return const Scaffold(
                 body: Text('Screen B'),
               );
@@ -52,8 +52,7 @@ void main() {
             routes: <RouteBase>[
               ShellRoute(
                 parentNavigatorKey: rootNavigatorKey,
-                builder:
-                    (BuildContext context, GoRouterState state, Widget child) {
+                builder: (_, __, Widget child) {
                   return Scaffold(
                     body: Column(
                       children: <Widget>[
@@ -66,7 +65,7 @@ void main() {
                 routes: <RouteBase>[
                   GoRoute(
                     path: 'c',
-                    builder: (BuildContext context, GoRouterState state) {
+                    builder: (_, __) {
                       return const Scaffold(
                         body: Text('Screen C'),
                       );
@@ -98,7 +97,7 @@ void main() {
     final List<RouteBase> routes = <RouteBase>[
       ShellRoute(
         navigatorKey: shellNavigatorKey,
-        builder: (BuildContext context, GoRouterState state, Widget child) {
+        builder: (_, __, Widget child) {
           return Scaffold(
             body: Column(
               children: <Widget>[
@@ -111,7 +110,7 @@ void main() {
         routes: <RouteBase>[
           GoRoute(
             path: '/b',
-            builder: (BuildContext context, GoRouterState state) {
+            builder: (_, __) {
               return const Scaffold(
                 body: Text('Screen B'),
               );
@@ -132,7 +131,7 @@ void main() {
                     routes: <RouteBase>[
                       GoRoute(
                         path: 'c',
-                        builder: (BuildContext context, GoRouterState state) {
+                        builder: (_, __) {
                           return const Scaffold(
                             body: Text('Screen C'),
                           );
@@ -188,32 +187,40 @@ void main() {
         (WidgetTester tester) async {
       final UniqueKey aKey = UniqueKey();
       final UniqueKey bKey = UniqueKey();
-      final List<GoRoute> routes = <GoRoute>[
+      final List<GoRoute<CustomData>> routes = <GoRoute<CustomData>>[
         GoRoute(
           path: '/a',
-          titleBuilder: (_, __) => 'A',
+          titleBuilder: (_, __) => const CustomData('A'),
           builder: (_, __) => Builder(builder: (BuildContext context) {
             return Text(
               key: aKey,
-              GoRouterState.of(context).titleBuilder?.call(context) ?? '',
+              GoRouterState.of<CustomData>(context)
+                      .titleBuilder
+                      ?.call(context)
+                      .value ??
+                  '',
             );
           }),
-          routes: <GoRoute>[
+          routes: <GoRoute<CustomData>>[
             GoRoute(
               path: 'b',
-              titleBuilder: (_, __) => 'B',
+              titleBuilder: (_, __) => const CustomData('B'),
               builder: (_, __) => Builder(builder: (BuildContext context) {
                 return Text(
                   key: bKey,
-                  GoRouterState.of(context).titleBuilder?.call(context) ?? '',
+                  GoRouterState.of<CustomData>(context)
+                          .titleBuilder
+                          ?.call(context)
+                          .value ??
+                      '',
                 );
               }),
             ),
           ],
         ),
       ];
-      final GoRouter router =
-          await createRouter(routes, tester, initialLocation: '/a');
+      final GoRouter<CustomData> router =
+          await createRouter<CustomData>(routes, tester, initialLocation: '/a');
       expect(tester.widget<Text>(find.byKey(aKey)).data, 'A');
 
       router.go('/a/b');
@@ -227,10 +234,10 @@ void main() {
           GlobalKey<NavigatorState>();
       final GlobalKey<NavigatorState> shellNavigatorKey =
           GlobalKey<NavigatorState>();
-      final List<RouteBase> routes = <RouteBase>[
+      final List<RouteBase<CustomData>> routes = <RouteBase<CustomData>>[
         ShellRoute(
           navigatorKey: shellNavigatorKey,
-          builder: (BuildContext context, GoRouterState state, Widget child) {
+          builder: (_, __, Widget child) {
             return Scaffold(
               body: Column(
                 children: <Widget>[
@@ -240,33 +247,35 @@ void main() {
               ),
             );
           },
-          routes: <RouteBase>[
+          routes: <RouteBase<CustomData>>[
             GoRoute(
               path: '/',
-              builder: (BuildContext context, GoRouterState state) {
+              builder: (_, __) {
                 return const Scaffold(
                   body: Text('Screen 1'),
                 );
               },
-              routes: <RouteBase>[
-                StatefulShellRoute.indexedStack(
+              routes: <RouteBase<CustomData>>[
+                StatefulShellRoute<CustomData>.indexedStack(
                   parentNavigatorKey: rootNavigatorKey,
-                  builder: (BuildContext context, GoRouterState state,
+                  builder: (BuildContext context,
+                      GoRouterState<CustomData> state,
                       StatefulNavigationShell navigationShell) {
                     return Column(
                       children: <Widget>[
-                        Text(state.titleBuilder?.call(context) ?? 'No Title'),
+                        Text(state.titleBuilder?.call(context).value ??
+                            'No Title'),
                         Expanded(child: navigationShell),
                       ],
                     );
                   },
-                  branches: <StatefulShellBranch>[
+                  branches: <StatefulShellBranch<CustomData>>[
                     StatefulShellBranch(
-                      routes: <RouteBase>[
+                      routes: <RouteBase<CustomData>>[
                         GoRoute(
                           path: 'a',
-                          titleBuilder: (_, __) => 'A',
-                          builder: (BuildContext context, GoRouterState state) {
+                          titleBuilder: (_, __) => const CustomData('A'),
+                          builder: (_, __) {
                             return const Scaffold(
                               body: Text('Screen 2'),
                             );
@@ -275,11 +284,11 @@ void main() {
                       ],
                     ),
                     StatefulShellBranch(
-                      routes: <RouteBase>[
+                      routes: <RouteBase<CustomData>>[
                         GoRoute(
                           path: 'b',
-                          titleBuilder: (_, __) => 'B',
-                          builder: (BuildContext context, GoRouterState state) {
+                          titleBuilder: (_, __) => const CustomData('B'),
+                          builder: (_, __) {
                             return const Scaffold(
                               body: Text('Screen 2'),
                             );
@@ -294,7 +303,7 @@ void main() {
           ],
         ),
       ];
-      final GoRouter router = await createRouter(routes, tester,
+      final GoRouter<CustomData> router = await createRouter(routes, tester,
           initialLocation: '/a', navigatorKey: rootNavigatorKey);
       expect(find.text('A'), findsOneWidget);
 
@@ -399,4 +408,9 @@ void main() {
       expect(hasError, isTrue);
     });
   });
+}
+
+class CustomData {
+  const CustomData(this.value);
+  final String value;
 }

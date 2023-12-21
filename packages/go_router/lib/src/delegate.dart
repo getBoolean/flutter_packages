@@ -15,21 +15,21 @@ import 'misc/errors.dart';
 import 'route.dart';
 
 /// GoRouter implementation of [RouterDelegate].
-class GoRouterDelegate extends RouterDelegate<RouteMatchList>
+class GoRouterDelegate<F> extends RouterDelegate<RouteMatchList<F>>
     with ChangeNotifier {
   /// Constructor for GoRouter's implementation of the RouterDelegate base
   /// class.
   GoRouterDelegate({
-    required RouteConfiguration configuration,
+    required RouteConfiguration<F> configuration,
     required GoRouterBuilderWithNav builderWithNav,
-    required GoRouterPageBuilder? errorPageBuilder,
-    required GoRouterWidgetBuilder? errorBuilder,
+    required GoRouterPageBuilder<F>? errorPageBuilder,
+    required GoRouterWidgetBuilder<F>? errorBuilder,
     required List<NavigatorObserver> observers,
     required this.routerNeglect,
     String? restorationScopeId,
     bool requestFocus = true,
   }) : _configuration = configuration {
-    builder = RouteBuilder(
+    builder = RouteBuilder<F>(
       configuration: configuration,
       builderWithNav: builderWithNav,
       errorPageBuilder: errorPageBuilder,
@@ -43,19 +43,20 @@ class GoRouterDelegate extends RouterDelegate<RouteMatchList>
 
   /// Builds the top-level Navigator given a configuration and location.
   @visibleForTesting
-  late final RouteBuilder builder;
+  late final RouteBuilder<F> builder;
 
   /// Set to true to disable creating history entries on the web.
   final bool routerNeglect;
 
-  final RouteConfiguration _configuration;
+  final RouteConfiguration<F> _configuration;
 
-  _NavigatorStateIterator _createNavigatorStateIterator() =>
-      _NavigatorStateIterator(currentConfiguration, navigatorKey.currentState!);
+  _NavigatorStateIterator<F> _createNavigatorStateIterator() =>
+      _NavigatorStateIterator<F>(
+          currentConfiguration, navigatorKey.currentState!);
 
   @override
   Future<bool> popRoute() async {
-    final _NavigatorStateIterator iterator = _createNavigatorStateIterator();
+    final _NavigatorStateIterator<F> iterator = _createNavigatorStateIterator();
     while (iterator.moveNext()) {
       final bool didPop = await iterator.current.maybePop();
       if (didPop) {
@@ -63,8 +64,8 @@ class GoRouterDelegate extends RouterDelegate<RouteMatchList>
       }
     }
     // This should be the only place where the last GoRoute exit the screen.
-    final GoRoute lastRoute =
-        currentConfiguration.matches.last.route as GoRoute;
+    final GoRoute<F> lastRoute =
+        currentConfiguration.matches.last.route as GoRoute<F>;
     if (lastRoute.onExit != null && navigatorKey.currentContext != null) {
       return !(await lastRoute.onExit!(navigatorKey.currentContext!));
     }
@@ -73,7 +74,7 @@ class GoRouterDelegate extends RouterDelegate<RouteMatchList>
 
   /// Returns `true` if the active Navigator can pop.
   bool canPop() {
-    final _NavigatorStateIterator iterator = _createNavigatorStateIterator();
+    final _NavigatorStateIterator<F> iterator = _createNavigatorStateIterator();
     while (iterator.moveNext()) {
       if (iterator.current.canPop()) {
         return true;
@@ -84,7 +85,7 @@ class GoRouterDelegate extends RouterDelegate<RouteMatchList>
 
   /// Pops the top-most route.
   void pop<T extends Object?>([T? result]) {
-    final _NavigatorStateIterator iterator = _createNavigatorStateIterator();
+    final _NavigatorStateIterator<F> iterator = _createNavigatorStateIterator();
     while (iterator.moveNext()) {
       if (iterator.current.canPop()) {
         iterator.current.pop<T>(result);
@@ -103,15 +104,15 @@ class GoRouterDelegate extends RouterDelegate<RouteMatchList>
   }
 
   bool _handlePopPageWithRouteMatch(
-      Route<Object?> route, Object? result, RouteMatch? match) {
+      Route<Object?> route, Object? result, RouteMatch<F>? match) {
     if (route.willHandlePopInternally) {
       final bool popped = route.didPop(result);
       assert(!popped);
       return popped;
     }
     assert(match != null);
-    final RouteBase routeBase = match!.route;
-    if (routeBase is! GoRoute || routeBase.onExit == null) {
+    final RouteBase<F> routeBase = match!.route;
+    if (routeBase is! GoRoute<F> || routeBase.onExit == null) {
       route.didPop(result);
       _completeRouteMatch(result, match);
       return true;
@@ -130,8 +131,8 @@ class GoRouterDelegate extends RouterDelegate<RouteMatchList>
     return false;
   }
 
-  void _completeRouteMatch(Object? result, RouteMatch match) {
-    if (match is ImperativeRouteMatch) {
+  void _completeRouteMatch(Object? result, RouteMatch<F> match) {
+    if (match is ImperativeRouteMatch<F>) {
       match.complete(result);
     }
     currentConfiguration = currentConfiguration.remove(match);
@@ -147,7 +148,7 @@ class GoRouterDelegate extends RouterDelegate<RouteMatchList>
 
   /// For use by the Router architecture as part of the RouterDelegate.
   @override
-  RouteMatchList currentConfiguration = RouteMatchList.empty;
+  RouteMatchList<F> currentConfiguration = RouteMatchList.empty();
 
   /// For use by the Router architecture as part of the RouterDelegate.
   @override
@@ -163,7 +164,7 @@ class GoRouterDelegate extends RouterDelegate<RouteMatchList>
   // This class avoids using async to make sure the route is processed
   // synchronously if possible.
   @override
-  Future<void> setNewRoutePath(RouteMatchList configuration) {
+  Future<void> setNewRoutePath(RouteMatchList<F> configuration) {
     if (currentConfiguration == configuration) {
       return SynchronousFuture<void>(null);
     }
@@ -185,10 +186,10 @@ class GoRouterDelegate extends RouterDelegate<RouteMatchList>
         }
       }
       if (indexOfFirstDiff < currentConfiguration.matches.length) {
-        final List<GoRoute> exitingGoRoutes = currentConfiguration.matches
+        final List<GoRoute<F>> exitingGoRoutes = currentConfiguration.matches
             .sublist(indexOfFirstDiff)
-            .map<RouteBase>((RouteMatch match) => match.route)
-            .whereType<GoRoute>()
+            .map<RouteBase<F>>((RouteMatch<F> match) => match.route)
+            .whereType<GoRoute<F>>()
             .toList();
         return _callOnExitStartsAt(exitingGoRoutes.length - 1,
                 navigatorContext: navigatorContext, routes: exitingGoRoutes)
@@ -208,12 +209,13 @@ class GoRouterDelegate extends RouterDelegate<RouteMatchList>
   ///
   /// The returned future resolves to true if all routes below the index all
   /// return true. Otherwise, the returned future resolves to false.
-  static Future<bool> _callOnExitStartsAt(int index,
-      {required BuildContext navigatorContext, required List<GoRoute> routes}) {
+  static Future<bool> _callOnExitStartsAt<F>(int index,
+      {required BuildContext navigatorContext,
+      required List<GoRoute<F>> routes}) {
     if (index < 0) {
       return SynchronousFuture<bool>(true);
     }
-    final GoRoute goRoute = routes[index];
+    final GoRoute<F> goRoute = routes[index];
     if (goRoute.onExit == null) {
       return _callOnExitStartsAt(index - 1,
           navigatorContext: navigatorContext, routes: routes);
@@ -234,7 +236,7 @@ class GoRouterDelegate extends RouterDelegate<RouteMatchList>
     return exitFuture.then<bool>(handleOnExitResult);
   }
 
-  Future<void> _setCurrentConfiguration(RouteMatchList configuration) {
+  Future<void> _setCurrentConfiguration(RouteMatchList<F> configuration) {
     currentConfiguration = configuration;
     notifyListeners();
     return SynchronousFuture<void>(null);
@@ -247,18 +249,18 @@ class GoRouterDelegate extends RouterDelegate<RouteMatchList>
 /// The iterator starts with the navigator that hosts the top-most route. This
 /// navigator may not be the inner-most navigator if the top-most route is a
 /// pageless route, such as a dialog or bottom sheet.
-class _NavigatorStateIterator implements Iterator<NavigatorState> {
+class _NavigatorStateIterator<T> implements Iterator<NavigatorState> {
   _NavigatorStateIterator(this.matchList, this.root)
       : index = matchList.matches.length - 1;
 
-  final RouteMatchList matchList;
+  final RouteMatchList<T> matchList;
   int index;
 
   final NavigatorState root;
   @override
   late NavigatorState current;
 
-  RouteBase _getRouteAtIndex(int index) => matchList.matches[index].route;
+  RouteBase<T> _getRouteAtIndex(int index) => matchList.matches[index].route;
 
   void _findsNextIndex() {
     final GlobalKey<NavigatorState>? parentNavigatorKey =
@@ -269,8 +271,8 @@ class _NavigatorStateIterator implements Iterator<NavigatorState> {
     }
 
     for (index -= 1; index >= 0; index -= 1) {
-      final RouteBase route = _getRouteAtIndex(index);
-      if (route is ShellRouteBase) {
+      final RouteBase<T> route = _getRouteAtIndex(index);
+      if (route is ShellRouteBase<T>) {
         if (route.navigatorKeyForSubRoute(_getRouteAtIndex(index + 1)) ==
             parentNavigatorKey) {
           return;
@@ -288,8 +290,8 @@ class _NavigatorStateIterator implements Iterator<NavigatorState> {
     _findsNextIndex();
 
     while (index >= 0) {
-      final RouteBase route = _getRouteAtIndex(index);
-      if (route is ShellRouteBase) {
+      final RouteBase<T> route = _getRouteAtIndex(index);
+      if (route is ShellRouteBase<T>) {
         final GlobalKey<NavigatorState> navigatorKey =
             route.navigatorKeyForSubRoute(_getRouteAtIndex(index + 1));
         // Must have a ModalRoute parent because the navigator ShellRoute

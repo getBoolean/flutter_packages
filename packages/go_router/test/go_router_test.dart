@@ -4327,7 +4327,7 @@ void main() {
             initialLocation: '/a',
             routes: <RouteBase>[
               StatefulShellRoute.indexedStack(
-                builder: mockStackedShellBuilder,
+                builder: mockStackedShellBuilder(),
                 branches: <StatefulShellBranch>[
                   StatefulShellBranch(routes: <GoRoute>[
                     GoRoute(

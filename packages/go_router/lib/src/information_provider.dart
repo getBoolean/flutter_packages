@@ -44,7 +44,7 @@ enum NavigatingType {
 ///
 /// This state class is used internally in go_router and will not be sent to
 /// the engine.
-class RouteInformationState<T> {
+class RouteInformationState<T, F> {
   /// Creates an InternalRouteInformationState.
   @visibleForTesting
   RouteInformationState({
@@ -69,14 +69,15 @@ class RouteInformationState<T> {
   /// The base route match list to push on top to.
   ///
   /// This is only null if [type] is [NavigatingType.go].
-  final RouteMatchList? baseRouteMatchList;
+  final RouteMatchList<F>? baseRouteMatchList;
 
   /// The type of navigation.
   final NavigatingType type;
 }
 
 /// The [RouteInformationProvider] created by go_router.
-class GoRouteInformationProvider extends RouteInformationProvider
+@optionalTypeArgs
+class GoRouteInformationProvider<F> extends RouteInformationProvider
     with WidgetsBindingObserver, ChangeNotifier {
   /// Creates a [GoRouteInformationProvider].
   GoRouteInformationProvider({
@@ -86,7 +87,7 @@ class GoRouteInformationProvider extends RouteInformationProvider
   })  : _refreshListenable = refreshListenable,
         _value = RouteInformation(
           location: initialLocation,
-          state: RouteInformationState<void>(
+          state: RouteInformationState<void, F>(
               extra: initialExtra, type: NavigatingType.go),
         ),
         _valueInEngine = _kEmptyRouteInformation {
@@ -158,11 +159,11 @@ class GoRouteInformationProvider extends RouteInformationProvider
 
   /// Pushes the `location` as a new route on top of `base`.
   Future<T?> push<T>(String location,
-      {required RouteMatchList base, Object? extra}) {
+      {required RouteMatchList<F> base, Object? extra}) {
     final Completer<T?> completer = Completer<T?>();
     _setValue(
       location,
-      RouteInformationState<T>(
+      RouteInformationState<T, F>(
         extra: extra,
         baseRouteMatchList: base,
         completer: completer,
@@ -176,7 +177,7 @@ class GoRouteInformationProvider extends RouteInformationProvider
   void go(String location, {Object? extra}) {
     _setValue(
       location,
-      RouteInformationState<void>(
+      RouteInformationState<void, F>(
         extra: extra,
         type: NavigatingType.go,
       ),
@@ -184,10 +185,10 @@ class GoRouteInformationProvider extends RouteInformationProvider
   }
 
   /// Restores the current route matches with the `matchList`.
-  void restore(String location, {required RouteMatchList matchList}) {
+  void restore(String location, {required RouteMatchList<F> matchList}) {
     _setValue(
       matchList.uri.toString(),
-      RouteInformationState<void>(
+      RouteInformationState<void, F>(
         extra: matchList.extra,
         baseRouteMatchList: matchList,
         type: NavigatingType.restore,
@@ -198,11 +199,11 @@ class GoRouteInformationProvider extends RouteInformationProvider
   /// Removes the top-most route match from `base` and pushes the `location` as a
   /// new route on top.
   Future<T?> pushReplacement<T>(String location,
-      {required RouteMatchList base, Object? extra}) {
+      {required RouteMatchList<F> base, Object? extra}) {
     final Completer<T?> completer = Completer<T?>();
     _setValue(
       location,
-      RouteInformationState<T>(
+      RouteInformationState<T, F>(
         extra: extra,
         baseRouteMatchList: base,
         completer: completer,
@@ -214,11 +215,11 @@ class GoRouteInformationProvider extends RouteInformationProvider
 
   /// Replaces the top-most route match from `base` with the `location`.
   Future<T?> replace<T>(String location,
-      {required RouteMatchList base, Object? extra}) {
+      {required RouteMatchList<F> base, Object? extra}) {
     final Completer<T?> completer = Completer<T?>();
     _setValue(
       location,
-      RouteInformationState<T>(
+      RouteInformationState<T, F>(
         extra: extra,
         baseRouteMatchList: base,
         completer: completer,
@@ -239,7 +240,7 @@ class GoRouteInformationProvider extends RouteInformationProvider
     } else {
       _value = RouteInformation(
         location: routeInformation.location,
-        state: RouteInformationState<void>(type: NavigatingType.go),
+        state: RouteInformationState<void, F>(type: NavigatingType.go),
       );
       _valueInEngine = _kEmptyRouteInformation;
     }

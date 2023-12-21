@@ -22,7 +22,8 @@ import 'state.dart';
 ///
 /// This is typically created by calling [RouteMatch.match].
 @immutable
-class RouteMatch {
+@optionalTypeArgs
+class RouteMatch<F> {
   /// Constructor for [RouteMatch].
   const RouteMatch({
     required this.route,
@@ -35,20 +36,20 @@ class RouteMatch {
   ///
   /// The extracted path parameters, as the result of the matching, are stored
   /// into `pathParameters`.
-  static RouteMatch? match({
-    required RouteBase route,
+  static RouteMatch<F>? match<F>({
+    required RouteBase<F> route,
     required String matchedPath, // e.g. /family/:fid
     required String remainingLocation, // e.g. person/p1
     required String matchedLocation, // e.g. /family/f2
     required Map<String, String> pathParameters,
   }) {
-    if (route is ShellRouteBase) {
-      return RouteMatch(
+    if (route is ShellRouteBase<F>) {
+      return RouteMatch<F>(
         route: route,
         matchedLocation: remainingLocation,
         pageKey: ValueKey<String>(route.hashCode.toString()),
       );
-    } else if (route is GoRoute) {
+    } else if (route is GoRoute<F>) {
       assert(!route.path.contains('//'));
 
       final RegExpMatch? match = route.matchPatternAsPrefix(remainingLocation);
@@ -64,7 +65,7 @@ class RouteMatch {
       final String newMatchedLocation =
           concatenatePaths(matchedLocation, pathLoc);
       final String newMatchedPath = concatenatePaths(matchedPath, route.path);
-      return RouteMatch(
+      return RouteMatch<F>(
         route: route,
         matchedLocation: newMatchedLocation,
         pageKey: ValueKey<String>(newMatchedPath),
@@ -75,7 +76,7 @@ class RouteMatch {
   }
 
   /// The matched route.
-  final RouteBase route;
+  final RouteBase<F> route;
 
   /// The location string that matches the [route].
   ///
@@ -95,7 +96,7 @@ class RouteMatch {
     if (other.runtimeType != runtimeType) {
       return false;
     }
-    return other is RouteMatch &&
+    return other is RouteMatch<F> &&
         route == other.route &&
         matchedLocation == other.matchedLocation &&
         pageKey == other.pageKey;
@@ -106,7 +107,8 @@ class RouteMatch {
 }
 
 /// The route match that represent route pushed through [GoRouter.push].
-class ImperativeRouteMatch extends RouteMatch {
+@optionalTypeArgs
+class ImperativeRouteMatch<F> extends RouteMatch<F> {
   /// Constructor for [ImperativeRouteMatch].
   ImperativeRouteMatch(
       {required super.pageKey, required this.matches, required this.completer})
@@ -114,15 +116,17 @@ class ImperativeRouteMatch extends RouteMatch {
           route: _getsLastRouteFromMatches(matches),
           matchedLocation: _getsMatchedLocationFromMatches(matches),
         );
-  static RouteBase _getsLastRouteFromMatches(RouteMatchList matchList) {
+  static RouteBase<F> _getsLastRouteFromMatches<F>(
+      RouteMatchList<F> matchList) {
     if (matchList.isError) {
-      return GoRoute(
+      return GoRoute<F>(
           path: 'error', builder: (_, __) => throw UnimplementedError());
     }
     return matchList.last.route;
   }
 
-  static String _getsMatchedLocationFromMatches(RouteMatchList matchList) {
+  static String _getsMatchedLocationFromMatches<F>(
+      RouteMatchList<F> matchList) {
     if (matchList.isError) {
       return matchList.uri.toString();
     }
@@ -130,7 +134,7 @@ class ImperativeRouteMatch extends RouteMatch {
   }
 
   /// The matches that produces this route match.
-  final RouteMatchList matches;
+  final RouteMatchList<F> matches;
 
   /// The completer for the future returned by [GoRouter.push].
   final Completer<Object?> completer;
@@ -143,7 +147,7 @@ class ImperativeRouteMatch extends RouteMatch {
 
   @override
   bool operator ==(Object other) {
-    return other is ImperativeRouteMatch &&
+    return other is ImperativeRouteMatch<F> &&
         completer == other.completer &&
         matches == other.matches &&
         super == other;
@@ -157,7 +161,8 @@ class ImperativeRouteMatch extends RouteMatch {
 ///
 /// This corresponds to the GoRouter's history.
 @immutable
-class RouteMatchList {
+@optionalTypeArgs
+class RouteMatchList<F> {
   /// RouteMatchList constructor.
   RouteMatchList({
     required this.matches,
@@ -169,13 +174,13 @@ class RouteMatchList {
   }) : fullPath = _generateFullPath(matches);
 
   /// Constructs an empty matches object.
-  static RouteMatchList empty = RouteMatchList(
-      matches: const <RouteMatch>[],
+  static RouteMatchList<F> empty<F>() => RouteMatchList<F>(
+      matches: const <RouteMatch<Never>>[],
       uri: Uri(),
       pathParameters: const <String, String>{});
 
   /// The route matches.
-  final List<RouteMatch> matches;
+  final List<RouteMatch<F>> matches;
 
   /// Parameters for the matched route, URI-encoded.
   ///
@@ -208,8 +213,7 @@ class RouteMatchList {
   /// This function is defined in [GoRoute.titleBuilder] and is
   /// accessible through [GoRouterState.titleBuilder], which will
   /// return the titleBuilder associated with that state.
-  final String Function(BuildContext context, GoRouterState state)?
-      titleBuilder;
+  final F Function(BuildContext context, GoRouterState<F> state)? titleBuilder;
 
   /// Generates the full path (ex: `'/family/:fid/person/:pid'`) of a list of
   /// [RouteMatch].
@@ -241,13 +245,13 @@ class RouteMatchList {
   /// ```dart
   /// [RouteMatchA(), RouteMatchB(), RouteMatchC()]
   /// ```
-  static String _generateFullPath(Iterable<RouteMatch> matches) {
+  static String _generateFullPath<F>(Iterable<RouteMatch<F>> matches) {
     final StringBuffer buffer = StringBuffer();
     bool addsSlash = false;
-    for (final RouteMatch match in matches
-        .where((RouteMatch match) => match is! ImperativeRouteMatch)) {
-      final RouteBase route = match.route;
-      if (route is GoRoute) {
+    for (final RouteMatch<F> match in matches
+        .where((RouteMatch<F> match) => match is! ImperativeRouteMatch)) {
+      final RouteBase<F> route = match.route;
+      if (route is GoRoute<F>) {
         if (addsSlash) {
           buffer.write('/');
         }
@@ -266,15 +270,15 @@ class RouteMatchList {
 
   /// Returns a new instance of RouteMatchList with the input `match` pushed
   /// onto the current instance.
-  RouteMatchList push(ImperativeRouteMatch match) {
+  RouteMatchList<F> push(ImperativeRouteMatch<F> match) {
     // Imperative route match doesn't change the uri and path parameters.
-    return _copyWith(matches: <RouteMatch>[...matches, match]);
+    return _copyWith(matches: <RouteMatch<F>>[...matches, match]);
   }
 
   /// Returns a new instance of RouteMatchList with the input `match` removed
   /// from the current instance.
-  RouteMatchList remove(RouteMatch match) {
-    final List<RouteMatch> newMatches = matches.toList();
+  RouteMatchList<F> remove(RouteMatch<F> match) {
+    final List<RouteMatch<F>> newMatches = matches.toList();
     final int index = newMatches.indexOf(match);
     assert(index != -1);
     newMatches.removeRange(index, newMatches.length);
@@ -283,7 +287,7 @@ class RouteMatchList {
     // that only have redirect.
     while (newMatches.isNotEmpty &&
         (newMatches.last.route is ShellRouteBase ||
-            (newMatches.last.route as GoRoute).redirectOnly)) {
+            (newMatches.last.route as GoRoute<F>).redirectOnly)) {
       newMatches.removeLast();
     }
     // Removing ImperativeRouteMatch should not change uri and pathParameters.
@@ -291,8 +295,8 @@ class RouteMatchList {
       return _copyWith(matches: newMatches);
     }
 
-    final String fullPath = _generateFullPath(
-        newMatches.where((RouteMatch match) => match is! ImperativeRouteMatch));
+    final String fullPath = _generateFullPath(newMatches
+        .where((RouteMatch<F> match) => match is! ImperativeRouteMatch));
     // Need to remove path parameters that are no longer in the fullPath.
     final List<String> newParameters = <String>[];
     patternToRegExp(fullPath, newParameters);
@@ -313,21 +317,22 @@ class RouteMatchList {
   }
 
   /// The last matching route.
-  RouteMatch get last => matches.last;
+  RouteMatch<F> get last => matches.last;
 
   /// Returns true if the current match intends to display an error screen.
   bool get isError => error != null;
 
   /// The routes for each of the matches.
-  List<RouteBase> get routes => matches.map((RouteMatch e) => e.route).toList();
+  List<RouteBase<F>> get routes =>
+      matches.map((RouteMatch<F> e) => e.route).toList();
 
-  RouteMatchList _copyWith({
-    List<RouteMatch>? matches,
+  RouteMatchList<F> _copyWith({
+    List<RouteMatch<F>>? matches,
     Uri? uri,
     Map<String, String>? pathParameters,
-    String Function(BuildContext, GoRouterState)? titleBuilder,
+    F Function(BuildContext, GoRouterState<F>)? titleBuilder,
   }) {
-    return RouteMatchList(
+    return RouteMatchList<F>(
       matches: matches ?? this.matches,
       uri: uri ?? this.uri,
       extra: extra,
@@ -342,11 +347,11 @@ class RouteMatchList {
     if (other.runtimeType != runtimeType) {
       return false;
     }
-    return other is RouteMatchList &&
+    return other is RouteMatchList<F> &&
         uri == other.uri &&
         extra == other.extra &&
         error == other.error &&
-        const ListEquality<RouteMatch>().equals(matches, other.matches) &&
+        ListEquality<RouteMatch<F>>().equals(matches, other.matches) &&
         const MapEquality<String, String>()
             .equals(pathParameters, other.pathParameters);
   }
@@ -376,11 +381,13 @@ class RouteMatchList {
 ///
 /// The primary use of this class is for state restoration and browser history.
 @internal
-class RouteMatchListCodec extends Codec<RouteMatchList, Map<Object?, Object?>> {
+@optionalTypeArgs
+class RouteMatchListCodec<F>
+    extends Codec<RouteMatchList<F>, Map<Object?, Object?>> {
   /// Creates a new [RouteMatchListCodec] object.
-  RouteMatchListCodec(RouteConfiguration configuration)
-      : decoder = _RouteMatchListDecoder(configuration),
-        encoder = _RouteMatchListEncoder(configuration);
+  RouteMatchListCodec(RouteConfiguration<F> configuration)
+      : decoder = _RouteMatchListDecoder<F>(configuration),
+        encoder = _RouteMatchListEncoder<F>(configuration);
 
   static const String _locationKey = 'location';
   static const String _extraKey = 'state';
@@ -392,22 +399,22 @@ class RouteMatchListCodec extends Codec<RouteMatchList, Map<Object?, Object?>> {
   static const String _encodedKey = 'encoded';
 
   @override
-  final Converter<RouteMatchList, Map<Object?, Object?>> encoder;
+  final Converter<RouteMatchList<F>, Map<Object?, Object?>> encoder;
 
   @override
-  final Converter<Map<Object?, Object?>, RouteMatchList> decoder;
+  final Converter<Map<Object?, Object?>, RouteMatchList<F>> decoder;
 }
 
-class _RouteMatchListEncoder
-    extends Converter<RouteMatchList, Map<Object?, Object?>> {
+class _RouteMatchListEncoder<F>
+    extends Converter<RouteMatchList<F>, Map<Object?, Object?>> {
   const _RouteMatchListEncoder(this.configuration);
 
-  final RouteConfiguration configuration;
+  final RouteConfiguration<F> configuration;
   @override
-  Map<Object?, Object?> convert(RouteMatchList input) {
+  Map<Object?, Object?> convert(RouteMatchList<F> input) {
     final List<Map<Object?, Object?>> imperativeMatches = input.matches
-        .whereType<ImperativeRouteMatch>()
-        .map((ImperativeRouteMatch e) => _toPrimitives(
+        .whereType<ImperativeRouteMatch<F>>()
+        .map((ImperativeRouteMatch<F> e) => _toPrimitives(
             e.matches.uri.toString(), e.matches.extra,
             pageKey: e.pageKey.value))
         .toList();
@@ -453,14 +460,14 @@ class _RouteMatchListEncoder
   }
 }
 
-class _RouteMatchListDecoder
-    extends Converter<Map<Object?, Object?>, RouteMatchList> {
+class _RouteMatchListDecoder<F>
+    extends Converter<Map<Object?, Object?>, RouteMatchList<F>> {
   _RouteMatchListDecoder(this.configuration);
 
-  final RouteConfiguration configuration;
+  final RouteConfiguration<F> configuration;
 
   @override
-  RouteMatchList convert(Map<Object?, Object?> input) {
+  RouteMatchList<F> convert(Map<Object?, Object?> input) {
     final String rootLocation =
         input[RouteMatchListCodec._locationKey]! as String;
     final Map<Object?, Object?> encodedExtra =
@@ -475,7 +482,7 @@ class _RouteMatchListDecoder
       extra = configuration.extraCodec
           ?.decode(encodedExtra[RouteMatchListCodec._encodedKey]);
     }
-    RouteMatchList matchList =
+    RouteMatchList<F> matchList =
         configuration.findMatch(rootLocation, extra: extra);
 
     final List<Object?>? imperativeMatches =
@@ -483,11 +490,11 @@ class _RouteMatchListDecoder
     if (imperativeMatches != null) {
       for (final Map<Object?, Object?> encodedImperativeMatch
           in imperativeMatches.whereType<Map<Object?, Object?>>()) {
-        final RouteMatchList imperativeMatchList =
+        final RouteMatchList<F> imperativeMatchList =
             convert(encodedImperativeMatch);
         final ValueKey<String> pageKey = ValueKey<String>(
             encodedImperativeMatch[RouteMatchListCodec._pageKey]! as String);
-        final ImperativeRouteMatch imperativeMatch = ImperativeRouteMatch(
+        final ImperativeRouteMatch<F> imperativeMatch = ImperativeRouteMatch<F>(
           pageKey: pageKey,
           // TODO(chunhtai): Figure out a way to preserve future.
           // https://github.com/flutter/flutter/issues/128122.

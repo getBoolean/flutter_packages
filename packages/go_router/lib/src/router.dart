@@ -21,10 +21,10 @@ import 'state.dart';
 /// The function signature of [GoRouter.onException].
 ///
 /// Use `state.error` to access the exception.
-typedef GoExceptionHandler = void Function(
+typedef GoExceptionHandler<F> = void Function(
   BuildContext context,
-  GoRouterState state,
-  GoRouter router,
+  GoRouterState<F> state,
+  GoRouter<F> router,
 );
 
 /// A set of parameters that defines routing in GoRouter.
@@ -35,18 +35,19 @@ typedef GoExceptionHandler = void Function(
 /// See [routing_config.dart](https://github.com/flutter/packages/blob/main/packages/go_router/example/lib/routing_config.dart).
 ///
 /// {@category Configuration}
-class RoutingConfig {
+@optionalTypeArgs
+class RoutingConfig<F> {
   /// Creates a routing config.
   ///
   /// The [routes] must not be empty.
   const RoutingConfig({
     required this.routes,
-    this.redirect = _defaultRedirect,
+    this.redirect = _defaultRedirect<dynamic>,
     this.redirectLimit = 5,
   });
 
-  static FutureOr<String?> _defaultRedirect(
-          BuildContext context, GoRouterState state) =>
+  static FutureOr<String?> _defaultRedirect<F>(
+          BuildContext context, GoRouterState<F> state) =>
       null;
 
   /// The supported routes.
@@ -55,7 +56,7 @@ class RoutingConfig {
   /// empty and must contain an [GoRoute] to match `/`.
   ///
   /// See [GoRouter].
-  final List<RouteBase> routes;
+  final List<RouteBase<F>> routes;
 
   /// The top-level callback allows the app to redirect to a new location.
   ///
@@ -66,7 +67,7 @@ class RoutingConfig {
   /// changes.
   ///
   /// See [GoRouter].
-  final GoRouterRedirect redirect;
+  final GoRouterRedirect<F> redirect;
 
   /// The maximum number of redirection allowed.
   ///
@@ -115,18 +116,18 @@ class RoutingConfig {
 /// {@category Deep linking}
 /// {@category Error handling}
 /// {@category Named routes}
-class GoRouter implements RouterConfig<RouteMatchList> {
+class GoRouter<F> implements RouterConfig<RouteMatchList<F>> {
   /// Default constructor to configure a GoRouter with a routes builder
   /// and an error page builder.
   ///
   /// The `routes` must not be null and must contain an [GoRouter] to match `/`.
   factory GoRouter({
-    required List<RouteBase> routes,
+    required List<RouteBase<F>> routes,
     Codec<Object?, Object?>? extraCodec,
-    GoExceptionHandler? onException,
-    GoRouterPageBuilder? errorPageBuilder,
-    GoRouterWidgetBuilder? errorBuilder,
-    GoRouterRedirect? redirect,
+    GoExceptionHandler<F>? onException,
+    GoRouterPageBuilder<F>? errorPageBuilder,
+    GoRouterWidgetBuilder<F>? errorBuilder,
+    GoRouterRedirect<F>? redirect,
     Listenable? refreshListenable,
     int redirectLimit = 5,
     bool routerNeglect = false,
@@ -139,9 +140,9 @@ class GoRouter implements RouterConfig<RouteMatchList> {
     String? restorationScopeId,
     bool requestFocus = true,
   }) {
-    return GoRouter.routingConfig(
-      routingConfig: _ConstantRoutingConfig(
-        RoutingConfig(
+    return GoRouter<F>.routingConfig(
+      routingConfig: _ConstantRoutingConfig<F>(
+        RoutingConfig<F>(
             routes: routes,
             redirect: redirect ?? RoutingConfig._defaultRedirect,
             redirectLimit: redirectLimit),
@@ -167,11 +168,11 @@ class GoRouter implements RouterConfig<RouteMatchList> {
   ///
   /// See [routing_config.dart](https://github.com/flutter/packages/blob/main/packages/go_router/example/lib/routing_config.dart).
   GoRouter.routingConfig({
-    required ValueListenable<RoutingConfig> routingConfig,
+    required ValueListenable<RoutingConfig<F>> routingConfig,
     Codec<Object?, Object?>? extraCodec,
-    GoExceptionHandler? onException,
-    GoRouterPageBuilder? errorPageBuilder,
-    GoRouterWidgetBuilder? errorBuilder,
+    GoExceptionHandler<F>? onException,
+    GoRouterPageBuilder<F>? errorPageBuilder,
+    GoRouterWidgetBuilder<F>? errorBuilder,
     Listenable? refreshListenable,
     bool routerNeglect = false,
     String? initialLocation,
@@ -202,16 +203,16 @@ class GoRouter implements RouterConfig<RouteMatchList> {
     navigatorKey ??= GlobalKey<NavigatorState>();
 
     _routingConfig.addListener(_handleRoutingConfigChanged);
-    configuration = RouteConfiguration(
+    configuration = RouteConfiguration<F>(
       _routingConfig,
       navigatorKey: navigatorKey,
       extraCodec: extraCodec,
     );
 
-    final ParserExceptionHandler? parserExceptionHandler;
+    final ParserExceptionHandler<F>? parserExceptionHandler;
     if (onException != null) {
       parserExceptionHandler =
-          (BuildContext context, RouteMatchList routeMatchList) {
+          (BuildContext context, RouteMatchList<F> routeMatchList) {
         onException(context,
             configuration.buildTopLevelGoRouterState(routeMatchList), this);
         // Avoid updating GoRouterDelegate if onException is provided.
@@ -221,18 +222,18 @@ class GoRouter implements RouterConfig<RouteMatchList> {
       parserExceptionHandler = null;
     }
 
-    routeInformationParser = GoRouteInformationParser(
+    routeInformationParser = GoRouteInformationParser<F>(
       onParserException: parserExceptionHandler,
       configuration: configuration,
     );
 
-    routeInformationProvider = GoRouteInformationProvider(
+    routeInformationProvider = GoRouteInformationProvider<F>(
       initialLocation: _effectiveInitialLocation(initialLocation),
       initialExtra: initialExtra,
       refreshListenable: refreshListenable,
     );
 
-    routerDelegate = GoRouterDelegate(
+    routerDelegate = GoRouterDelegate<F>(
       configuration: configuration,
       errorPageBuilder: errorPageBuilder,
       errorBuilder: errorBuilder,
@@ -275,7 +276,7 @@ class GoRouter implements RouterConfig<RouteMatchList> {
   static bool optionURLReflectsImperativeAPIs = false;
 
   /// The route configuration used in go_router.
-  late final RouteConfiguration configuration;
+  late final RouteConfiguration<F> configuration;
 
   @override
   final BackButtonDispatcher backButtonDispatcher;
@@ -283,15 +284,15 @@ class GoRouter implements RouterConfig<RouteMatchList> {
   /// The router delegate. Provide this to the MaterialApp or CupertinoApp's
   /// `.router()` constructor
   @override
-  late final GoRouterDelegate routerDelegate;
+  late final GoRouterDelegate<F> routerDelegate;
 
   /// The route information provider used by [GoRouter].
   @override
-  late final GoRouteInformationProvider routeInformationProvider;
+  late final GoRouteInformationProvider<F> routeInformationProvider;
 
   /// The route information parser used by [GoRouter].
   @override
-  late final GoRouteInformationParser routeInformationParser;
+  late final GoRouteInformationParser<F> routeInformationParser;
 
   void _handleRoutingConfigChanged() {
     // Reparse is needed to update its builder
@@ -315,7 +316,7 @@ class GoRouter implements RouterConfig<RouteMatchList> {
   /// It's advisable to only set this to [true] if one explicitly wants to.
   final bool overridePlatformDefaultLocation;
 
-  final ValueListenable<RoutingConfig> _routingConfig;
+  final ValueListenable<RoutingConfig<F>> _routingConfig;
 
   /// Returns `true` if there is at least two or more route can be pop.
   bool canPop() => routerDelegate.canPop();
@@ -341,7 +342,7 @@ class GoRouter implements RouterConfig<RouteMatchList> {
   }
 
   /// Restore the RouteMatchList
-  void restore(RouteMatchList matchList) {
+  void restore(RouteMatchList<F> matchList) {
     log('restoring ${matchList.uri}');
     routeInformationProvider.restore(
       matchList.uri.toString(),
@@ -502,8 +503,8 @@ class GoRouter implements RouterConfig<RouteMatchList> {
   /// Find the current GoRouter in the widget tree.
   ///
   /// This method throws when it is called during redirects.
-  static GoRouter of(BuildContext context) {
-    final GoRouter? inherited = maybeOf(context);
+  static GoRouter<F> of<F>(BuildContext context) {
+    final GoRouter<F>? inherited = maybeOf(context);
     assert(inherited != null, 'No GoRouter found in context');
     return inherited!;
   }
@@ -511,10 +512,10 @@ class GoRouter implements RouterConfig<RouteMatchList> {
   /// The current GoRouter in the widget tree, if any.
   ///
   /// This method returns null when it is called during redirects.
-  static GoRouter? maybeOf(BuildContext context) {
-    final InheritedGoRouter? inherited = context
-        .getElementForInheritedWidgetOfExactType<InheritedGoRouter>()
-        ?.widget as InheritedGoRouter?;
+  static GoRouter<F>? maybeOf<F>(BuildContext context) {
+    final InheritedGoRouter<F>? inherited = context
+        .getElementForInheritedWidgetOfExactType<InheritedGoRouter<F>>()
+        ?.widget as InheritedGoRouter<F>?;
     return inherited?.goRouter;
   }
 
@@ -554,7 +555,7 @@ class GoRouter implements RouterConfig<RouteMatchList> {
 }
 
 /// A routing config that is never going to change.
-class _ConstantRoutingConfig extends ValueListenable<RoutingConfig> {
+class _ConstantRoutingConfig<F> extends ValueListenable<RoutingConfig<F>> {
   const _ConstantRoutingConfig(this.value);
   @override
   void addListener(VoidCallback listener) {
@@ -567,5 +568,5 @@ class _ConstantRoutingConfig extends ValueListenable<RoutingConfig> {
   }
 
   @override
-  final RoutingConfig value;
+  final RoutingConfig<F> value;
 }

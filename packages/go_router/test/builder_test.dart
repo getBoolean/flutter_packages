@@ -387,19 +387,20 @@ class _DetailsScreen extends StatelessWidget {
   }
 }
 
-class _BuilderTestWidget extends StatelessWidget {
+@optionalTypeArgs
+class _BuilderTestWidget<F> extends StatelessWidget {
   _BuilderTestWidget({
     required this.routeConfiguration,
     required this.matches,
-  }) : builder = _routeBuilder(routeConfiguration);
+  }) : builder = _routeBuilder<F>(routeConfiguration);
 
-  final RouteConfiguration routeConfiguration;
-  final RouteBuilder builder;
-  final RouteMatchList matches;
+  final RouteConfiguration<F> routeConfiguration;
+  final RouteBuilder<F> builder;
+  final RouteMatchList<F> matches;
 
   /// Builds a [RouteBuilder] for tests
-  static RouteBuilder _routeBuilder(RouteConfiguration configuration) {
-    return RouteBuilder(
+  static RouteBuilder<F> _routeBuilder<F>(RouteConfiguration<F> configuration) {
+    return RouteBuilder<F>(
       configuration: configuration,
       builderWithNav: (
         BuildContext context,
@@ -431,7 +432,7 @@ class _BuilderTestWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       home: builder.tryBuild(context, matches, false,
-          routeConfiguration.navigatorKey, <Page<Object?>, GoRouterState>{}),
+          routeConfiguration.navigatorKey, <Page<Object?>, GoRouterState<F>>{}),
     );
   }
 }

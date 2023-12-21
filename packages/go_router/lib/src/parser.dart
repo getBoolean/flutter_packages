@@ -22,30 +22,32 @@ import 'router.dart';
 ///
 /// The returned [RouteMatchList] is used as parsed result for the
 /// [GoRouterDelegate].
-typedef ParserExceptionHandler = RouteMatchList Function(
+typedef ParserExceptionHandler<F> = RouteMatchList<F> Function(
   BuildContext context,
-  RouteMatchList routeMatchList,
+  RouteMatchList<F> routeMatchList,
 );
 
 /// Converts between incoming URLs and a [RouteMatchList] using [RouteMatcher].
 /// Also performs redirection using [RouteRedirector].
-class GoRouteInformationParser extends RouteInformationParser<RouteMatchList> {
+@optionalTypeArgs
+class GoRouteInformationParser<F>
+    extends RouteInformationParser<RouteMatchList<F>> {
   /// Creates a [GoRouteInformationParser].
   GoRouteInformationParser({
     required this.configuration,
     required this.onParserException,
-  }) : _routeMatchListCodec = RouteMatchListCodec(configuration);
+  }) : _routeMatchListCodec = RouteMatchListCodec<F>(configuration);
 
   /// The route configuration used for parsing [RouteInformation]s.
-  final RouteConfiguration configuration;
+  final RouteConfiguration<F> configuration;
 
   /// The exception handler that is called when parser can't handle the incoming
   /// uri.
   ///
   /// This method must return a [RouteMatchList] for the parsed result.
-  final ParserExceptionHandler? onParserException;
+  final ParserExceptionHandler<F>? onParserException;
 
-  final RouteMatchListCodec _routeMatchListCodec;
+  final RouteMatchListCodec<F> _routeMatchListCodec;
 
   final Random _random = Random();
 
@@ -53,25 +55,25 @@ class GoRouteInformationParser extends RouteInformationParser<RouteMatchList> {
   ///
   /// This is used for testing asynchronous redirection.
   @visibleForTesting
-  Future<RouteMatchList>? debugParserFuture;
+  Future<RouteMatchList<F>>? debugParserFuture;
 
   /// Called by the [Router]. The
   @override
-  Future<RouteMatchList> parseRouteInformationWithDependencies(
+  Future<RouteMatchList<F>> parseRouteInformationWithDependencies(
     RouteInformation routeInformation,
     BuildContext context,
   ) {
     assert(routeInformation.state != null);
     final Object state = routeInformation.state!;
 
-    if (state is! RouteInformationState) {
+    if (state is! RouteInformationState<void, F>) {
       // This is a result of browser backward/forward button or state
       // restoration. In this case, the route match list is already stored in
       // the state.
-      final RouteMatchList matchList =
+      final RouteMatchList<F> matchList =
           _routeMatchListCodec.decode(state as Map<Object?, Object?>);
       return debugParserFuture = _redirect(context, matchList)
-          .then<RouteMatchList>((RouteMatchList value) {
+          .then<RouteMatchList<F>>((RouteMatchList<F> value) {
         if (value.isError && onParserException != null) {
           return onParserException!(context, value);
         }
@@ -79,7 +81,7 @@ class GoRouteInformationParser extends RouteInformationParser<RouteMatchList> {
       });
     }
 
-    late final RouteMatchList initialMatches;
+    late final RouteMatchList<F> initialMatches;
     initialMatches =
         // TODO(chunhtai): remove this ignore and migrate the code
         // https://github.com/flutter/flutter/issues/124045.
@@ -98,14 +100,14 @@ class GoRouteInformationParser extends RouteInformationParser<RouteMatchList> {
     return debugParserFuture = _redirect(
       context,
       initialMatches,
-    ).then<RouteMatchList>((RouteMatchList matchList) {
+    ).then<RouteMatchList<F>>((RouteMatchList<F> matchList) {
       if (matchList.isError && onParserException != null) {
         return onParserException!(context, matchList);
       }
 
       assert(() {
         if (matchList.isNotEmpty) {
-          assert(!(matchList.last.route as GoRoute).redirectOnly,
+          assert(!(matchList.last.route as GoRoute<F>).redirectOnly,
               'A redirect-only route must redirect to location different from itself.\n The offending route: ${matchList.last.route}');
         }
         return true;
@@ -120,7 +122,7 @@ class GoRouteInformationParser extends RouteInformationParser<RouteMatchList> {
   }
 
   @override
-  Future<RouteMatchList> parseRouteInformation(
+  Future<RouteMatchList<F>> parseRouteInformation(
       RouteInformation routeInformation) {
     throw UnimplementedError(
         'use parseRouteInformationWithDependencies instead');
@@ -128,14 +130,14 @@ class GoRouteInformationParser extends RouteInformationParser<RouteMatchList> {
 
   /// for use by the Router architecture as part of the RouteInformationParser
   @override
-  RouteInformation? restoreRouteInformation(RouteMatchList configuration) {
+  RouteInformation? restoreRouteInformation(RouteMatchList<F> configuration) {
     if (configuration.isEmpty) {
       return null;
     }
     final String location;
     if (GoRouter.optionURLReflectsImperativeAPIs &&
         configuration.matches.last is ImperativeRouteMatch) {
-      location = (configuration.matches.last as ImperativeRouteMatch)
+      location = (configuration.matches.last as ImperativeRouteMatch<F>)
           .matches
           .uri
           .toString();
@@ -151,44 +153,44 @@ class GoRouteInformationParser extends RouteInformationParser<RouteMatchList> {
     );
   }
 
-  Future<RouteMatchList> _redirect(
-      BuildContext context, RouteMatchList routeMatch) {
-    final FutureOr<RouteMatchList> redirectedFuture = configuration
-        .redirect(context, routeMatch, redirectHistory: <RouteMatchList>[]);
-    if (redirectedFuture is RouteMatchList) {
-      return SynchronousFuture<RouteMatchList>(redirectedFuture);
+  Future<RouteMatchList<F>> _redirect(
+      BuildContext context, RouteMatchList<F> routeMatch) {
+    final FutureOr<RouteMatchList<F>> redirectedFuture = configuration
+        .redirect(context, routeMatch, redirectHistory: <RouteMatchList<F>>[]);
+    if (redirectedFuture is RouteMatchList<F>) {
+      return SynchronousFuture<RouteMatchList<F>>(redirectedFuture);
     }
     return redirectedFuture;
   }
 
-  RouteMatchList _updateRouteMatchList(
-    RouteMatchList newMatchList, {
-    required RouteMatchList? baseRouteMatchList,
+  RouteMatchList<F> _updateRouteMatchList(
+    RouteMatchList<F> newMatchList, {
+    required RouteMatchList<F>? baseRouteMatchList,
     required Completer<Object?>? completer,
     required NavigatingType type,
   }) {
     switch (type) {
       case NavigatingType.push:
         return baseRouteMatchList!.push(
-          ImperativeRouteMatch(
+          ImperativeRouteMatch<F>(
             pageKey: _getUniqueValueKey(),
             completer: completer!,
             matches: newMatchList,
           ),
         );
       case NavigatingType.pushReplacement:
-        final RouteMatch routeMatch = baseRouteMatchList!.last;
+        final RouteMatch<F> routeMatch = baseRouteMatchList!.last;
         return baseRouteMatchList.remove(routeMatch).push(
-              ImperativeRouteMatch(
+              ImperativeRouteMatch<F>(
                 pageKey: _getUniqueValueKey(),
                 completer: completer!,
                 matches: newMatchList,
               ),
             );
       case NavigatingType.replace:
-        final RouteMatch routeMatch = baseRouteMatchList!.last;
+        final RouteMatch<F> routeMatch = baseRouteMatchList!.last;
         return baseRouteMatchList.remove(routeMatch).push(
-              ImperativeRouteMatch(
+              ImperativeRouteMatch<F>(
                 pageKey: routeMatch.pageKey,
                 completer: completer!,
                 matches: newMatchList,

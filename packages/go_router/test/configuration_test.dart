@@ -112,7 +112,7 @@ void main() {
                         ]),
                   ],
                 ),
-              ], builder: mockStackedShellBuilder),
+              ], builder: mockStackedShellBuilder()),
             ],
             redirectLimit: 10,
             topRedirect: (BuildContext context, GoRouterState state) {
@@ -150,7 +150,7 @@ void main() {
                     ]),
               ],
             ),
-          ], builder: mockStackedShellBuilder),
+          ], builder: mockStackedShellBuilder()),
         ],
         redirectLimit: 10,
         topRedirect: (BuildContext context, GoRouterState state) {
@@ -193,7 +193,7 @@ void main() {
                         parentNavigatorKey: someNavigatorKey),
                   ],
                 ),
-              ], builder: mockStackedShellBuilder),
+              ], builder: mockStackedShellBuilder()),
             ],
             redirectLimit: 10,
             topRedirect: (BuildContext context, GoRouterState state) {
@@ -223,7 +223,7 @@ void main() {
             routes: <RouteBase>[
               StatefulShellRoute.indexedStack(branches: <StatefulShellBranch>[
                 StatefulShellBranch(routes: shellRouteChildren)
-              ], builder: mockStackedShellBuilder),
+              ], builder: mockStackedShellBuilder()),
             ],
             redirectLimit: 10,
             topRedirect: (BuildContext context, GoRouterState state) {
@@ -264,7 +264,7 @@ void main() {
                 StatefulShellBranch(
                     routes: <RouteBase>[routeB],
                     navigatorKey: sectionBNavigatorKey),
-              ], builder: mockStackedShellBuilder),
+              ], builder: mockStackedShellBuilder()),
             ],
             redirectLimit: 10,
             topRedirect: (BuildContext context, GoRouterState state) {
@@ -310,7 +310,7 @@ void main() {
                     ),
                   ],
                 ),
-              ], builder: mockStackedShellBuilder),
+              ], builder: mockStackedShellBuilder()),
             ],
             redirectLimit: 10,
             topRedirect: (BuildContext context, GoRouterState state) {
@@ -362,10 +362,10 @@ void main() {
                             ],
                           ),
                         ],
-                        builder: mockStackedShellBuilder),
+                        builder: mockStackedShellBuilder()),
                   ],
                 ),
-              ], builder: mockStackedShellBuilder),
+              ], builder: mockStackedShellBuilder()),
             ],
             redirectLimit: 10,
             topRedirect: (BuildContext context, GoRouterState state) {
@@ -445,7 +445,7 @@ void main() {
                           ]),
                     ],
                   ),
-                ], builder: mockStackedShellBuilder),
+                ], builder: mockStackedShellBuilder()),
               ],
             ),
             StatefulShellBranch(routes: <RouteBase>[
@@ -464,7 +464,7 @@ void main() {
                 ],
               ),
             ]),
-          ], builder: mockStackedShellBuilder),
+          ], builder: mockStackedShellBuilder()),
         ],
         redirectLimit: 10,
         topRedirect: (BuildContext context, GoRouterState state) {
@@ -484,7 +484,7 @@ void main() {
           navigatorKey: GlobalKey<NavigatorState>(debugLabel: 'root'),
           routes: <RouteBase>[
             StatefulShellRoute.indexedStack(
-              builder: mockStackedShellBuilder,
+              builder: mockStackedShellBuilder(),
               branches: <StatefulShellBranch>[
                 branchA = StatefulShellBranch(routes: <RouteBase>[
                   GoRoute(
@@ -496,7 +496,7 @@ void main() {
                         builder: _mockScreenBuilder,
                         routes: <RouteBase>[
                           StatefulShellRoute.indexedStack(
-                              builder: mockStackedShellBuilder,
+                              builder: mockStackedShellBuilder(),
                               branches: <StatefulShellBranch>[
                                 branchY =
                                     StatefulShellBranch(routes: <RouteBase>[
